@@ -8,7 +8,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var defaultStore = newDB()
+var defaultStore = NewDefaultStore()
 
 // PgStore is a reference to the password store.
 type PgStore struct {
@@ -17,27 +17,27 @@ type PgStore struct {
 
 // Store stores the given id and secret in Postgres. It will hash the secret
 // using bcrypt before storing it.
-func (p *PgStore) Store(id string, secret string) (string, error) {
+func Store(id string, secret string) (string, error) {
 	hashedSecret, err := password.Hash(secret)
 	if err != nil {
 		return "", err
 	}
 
-	// @TODO
-	p.DB.Query("", hashedSecret)
-	return "", nil
+	var genID string
+	err = defaultStore.DB.QueryRow("INSERT INTO users(username, secret) VALUES($1, $2) RETURNING id", id, hashedSecret).Scan(&genID)
+	return genID, err
 }
 
 // Retrieve retrieves from Postgres the hashed secret given an id and secret.
-func (p *PgStore) Retrieve(id string, secret string) (string, error) {
-	p.DB.Query("")
-
-	return "", nil
+func Retrieve(id string, secret string) (string, error) {
+	var hashedPassword string
+	err := defaultStore.DB.QueryRow("SELECT secret FROM users WHERE id = $1", id).Scan(&hashedPassword)
+	return hashedPassword, err
 }
 
-// newDB returns a default DB
-func newDB() *PgStore {
-	db, err := sql.Open("postgres", "user=ppc dbname=ppc sslmode=verify-full")
+// NewDefaultStore returns a default DB
+func NewDefaultStore() *PgStore {
+	db, err := sql.Open("postgres", "user=bentranter dbname=users sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
