@@ -17,6 +17,26 @@ type PgStore struct {
 
 // Store stores the given id and secret in Postgres. It will hash the secret
 // using bcrypt before storing it.
+func (p *PgStore) Store(id string, secret string) (string, error) {
+	hashedSecret, err := password.Hash(secret)
+	if err != nil {
+		return "", err
+	}
+
+	var genID string
+	err = p.DB.QueryRow("INSERT INTO users(username, secret) VALUES($1, $2) RETURNING id", id, hashedSecret).Scan(&genID)
+	return genID, err
+}
+
+// Retrieve retrieves from Postgres the hashed secret given an id and secret.
+func (p *PgStore) Retrieve(id string, secret string) (string, error) {
+	var hashedPassword string
+	err := p.DB.QueryRow("SELECT secret FROM users WHERE id = $1", id).Scan(&hashedPassword)
+	return hashedPassword, err
+}
+
+// Store stores the given id and secret in Postgres. It will hash the secret
+// using bcrypt before storing it.
 func Store(id string, secret string) (string, error) {
 	hashedSecret, err := password.Hash(secret)
 	if err != nil {
