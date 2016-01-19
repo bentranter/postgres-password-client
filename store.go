@@ -35,6 +35,15 @@ func Retrieve(id string, secret string) (string, error) {
 	return hashedPassword, err
 }
 
+// NewStore returns a new DB based on the given options.
+func NewStore(user string, dbname string, sslmode string) (*PgStore, error) {
+	opt := "user=" + user + "dbname=" + dbname + "sslmode=" + sslmode
+	db, err := sql.Open("postgres", opt)
+	return &PgStore{
+		DB: db,
+	}, err
+}
+
 // NewDefaultStore returns a default DB
 func NewDefaultStore() *PgStore {
 	db, err := sql.Open("postgres", "user=bentranter dbname=users sslmode=disable")
